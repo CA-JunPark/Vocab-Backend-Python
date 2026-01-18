@@ -11,4 +11,5 @@ class WordSchema(BaseModel):
     createdTime: Optional[str] = None
     modifiedTime: Optional[str] = None
     isDeleted: bool = False
-    synced: bool = False
+    syncedTime: Optional[str] = None
+    note: Optional[str] = None
