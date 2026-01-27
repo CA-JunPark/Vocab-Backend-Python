@@ -13,7 +13,7 @@ app = FastAPI()
 
 # Connect to Turso
 # TODO change it to environment variables 
-# for Google Cloud Run server
+# into Google Cloud Run server
 url = secretKeys.TURSO_URL
 auth_token = secretKeys.TURSO_TOKEN
 
@@ -39,8 +39,8 @@ async def sync(request: SyncRequest):
     print("localChanges: ", request.localChanges)
     client = app.state.db_client
 
-    for word in request.localChanges:
-        await client.execute(
+    statements = [
+        (
             """
             INSERT INTO Word (name, meaningKr, example, antonymEn, tags, createdTime, modifiedTime, isDeleted, syncedTime, note)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -55,9 +55,14 @@ async def sync(request: SyncRequest):
                 note=excluded.note
             WHERE excluded.modifiedTime > Word.modifiedTime
             """,
-            [word.name, word.meaningKr, word.example, word.antonymEn, word.tags, 
-             word.createdTime, word.modifiedTime, int(word.isDeleted), word.modifiedTime, word.note]
+            [
+                word.name, word.meaningKr, word.example, word.antonymEn, word.tags, 
+                word.createdTime, word.modifiedTime, int(word.isDeleted), word.modifiedTime, word.note
+            ]
         )
+        for word in request.localChanges
+    ]
+    await client.batch(statements)
 
     updates = []
     if request.lastSyncTime:
@@ -79,7 +84,6 @@ async def sync(request: SyncRequest):
                 "syncedTime": row[8],
                 "note": row[9]
             })
-    print("wordsToUpdate: ", len(updates))
     return {
         "wordsToUpdate": updates,
         "serverTime": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') # for update lastSyncTime in local
@@ -126,8 +130,6 @@ systemInstruction = """Provide linguistic details for the given word in JSON for
             """
 @app.get("/gemini")
 async def gemini(word: str):
-    # TODO use environment variables for GEMINI_API_KEY remove argument api_key 
-    # if environment variables are set
     # TODO use environment variables for GEMINI_API_KEY remove argument api_key 
     # if environment variables are set
     client = genai.Client(api_key=gemini_key)
