@@ -1,5 +1,5 @@
 fastapi
 uvicorn
 libsql-client
-google-generativeai
+google-genai
 python-jose[cryptography]

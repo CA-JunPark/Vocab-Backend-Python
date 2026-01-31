@@ -7,6 +7,9 @@ from WordSchema import WordSchema
 from datetime import datetime
 from google import genai
 from google.genai import types
+import json
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 
 # fastapi dev main.py
 app = FastAPI()
@@ -127,6 +130,7 @@ systemInstruction = """Provide linguistic details for the given word in JSON for
             2. SYNC: Ensure that the index of each entry in 'meaningKr', 'example', and 'antonymEn' corresponds to the same definition. 
             3. LENGTH: All three arrays (meaningKr, example, antonymEn) must have the exact same number of elements.
             4. LANGUAGE: 'meaningKr' must be in Korean. All other fields must be English.
+            5. Case: Lowercase the 'name' and 'antonymEn' fields.
             """
 @app.get("/gemini")
 async def gemini(word: str):
@@ -135,7 +139,7 @@ async def gemini(word: str):
     client = genai.Client(api_key=gemini_key)
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3-flash-preview',
             contents=f"Generate a vocabulary entry for the word: {word}",
             config=types.GenerateContentConfig(
                 system_instruction=systemInstruction,
@@ -144,6 +148,8 @@ async def gemini(word: str):
                 response_schema=response_schema,
             ),
         )
-        return json.loads(response.text)
+        data = json.loads(response.text)
+        print(data)
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
