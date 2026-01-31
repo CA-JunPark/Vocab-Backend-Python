@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import secretKeys
 from libsql_client import create_client
 from typing import List
 from WordSchema import WordSchema
@@ -10,15 +9,19 @@ from google.genai import types
 import json
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
+import os
 
 # fastapi dev main.py
 app = FastAPI()
 
-# Connect to Turso
-# TODO change it to environment variables 
-# into Google Cloud Run server
-url = secretKeys.TURSO_URL
-auth_token = secretKeys.TURSO_TOKEN
+try:
+    import secretKeys
+except ImportError:
+    secretKeys = None
+
+url = os.getenv("TURSO_URL") or (secretKeys.TURSO_URL if secretKeys else None)
+auth_token = os.getenv("TURSO_TOKEN") or (secretKeys.TURSO_TOKEN if secretKeys else None)
+gemini_key = os.getenv("GEMINI_API_KEY") or (secretKeys.GEMINI_API_KEY if secretKeys else None)
 
 @app.on_event("startup")
 async def startup():
@@ -112,8 +115,6 @@ async def pull_changes():
         })
     return results
 
-# TODO set environment variables for GEMINI_API_KEY
-gemini_key = secretKeys.GEMINI_API_KEY
 response_schema = {
     "type": "OBJECT",
     "properties": {
@@ -135,8 +136,6 @@ systemInstruction = """Provide linguistic details for the given word in JSON for
             """
 @app.get("/gemini")
 async def gemini(word: str):
-    # TODO use environment variables for GEMINI_API_KEY remove argument api_key 
-    # if environment variables are set
     client = genai.Client(api_key=gemini_key)
     try:
         response = client.models.generate_content(
