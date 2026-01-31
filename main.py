@@ -134,6 +134,8 @@ systemInstruction = """Provide linguistic details for the given word in JSON for
             5. Case: Lowercase the 'name' and 'antonymEn' fields.
             6. If the word is misspelled, provide the correct spelling in the 'name' field and provide details of that word.
             """
+
+# TODO: record the request count and automatically change the model
 @app.get("/gemini")
 async def gemini(word: str):
     client = genai.Client(api_key=gemini_key)
