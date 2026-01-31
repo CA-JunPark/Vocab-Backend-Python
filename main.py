@@ -131,6 +131,7 @@ systemInstruction = """Provide linguistic details for the given word in JSON for
             3. LENGTH: All three arrays (meaningKr, example, antonymEn) must have the exact same number of elements.
             4. LANGUAGE: 'meaningKr' must be in Korean. All other fields must be English.
             5. Case: Lowercase the 'name' and 'antonymEn' fields.
+            6. If the word is misspelled, provide the correct spelling in the 'name' field and provide details of that word.
             """
 @app.get("/gemini")
 async def gemini(word: str):
