@@ -3,3 +3,5 @@ uvicorn
 libsql-client
 google-genai
 python-jose[cryptography]
+google-auth
+requests

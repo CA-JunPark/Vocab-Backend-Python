@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from libsql_client import create_client
 from typing import List
@@ -10,6 +10,8 @@ import json
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 import os
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 # fastapi dev main.py
 app = FastAPI()
@@ -22,6 +24,9 @@ except ImportError:
 url = os.getenv("TURSO_URL") or (secretKeys.TURSO_URL if secretKeys else None)
 auth_token = os.getenv("TURSO_TOKEN") or (secretKeys.TURSO_TOKEN if secretKeys else None)
 gemini_key = os.getenv("GEMINI_API_KEY") or (secretKeys.GEMINI_API_KEY if secretKeys else None)
+ALLOWED_EMAIL = os.getenv("EMAIL") 
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
 
 @app.on_event("startup")
 async def startup():
@@ -39,8 +44,26 @@ class SyncRequest(BaseModel):
     lastSyncTime: str
     localChanges: List[WordSchema]
 
+async def verify_user(auth_header: str):
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing Token")
+    
+    token = auth_header.split(" ")[1]
+    try:
+        # Verify Google ID Token 
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
+        
+        # Verify Email
+        if idinfo['email'] != ALLOWED_EMAIL:
+            raise HTTPException(status_code=403, detail="Access Denied: Wrong User")
+            
+        return idinfo
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Token: {str(e)}")
+
 @app.post("/sync")
-async def sync(request: SyncRequest):
+async def sync(request: SyncRequest, authorization: str = Header(None)):
+    await verify_user(authorization)
     print("lastSyncTime: ", request.lastSyncTime)
     print("localChanges: ", request.localChanges)
     client = app.state.db_client
