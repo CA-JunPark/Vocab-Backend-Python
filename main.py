@@ -55,7 +55,7 @@ async def verify_user(auth_header: str):
         
         # Verify Email
         if idinfo['email'] != ALLOWED_EMAIL:
-            raise HTTPException(status_code=403, detail="Access Denied: Wrong User")
+            raise HTTPException(status_code=403, detail="Access Denied: Wrong Google Account")
             
         return idinfo
     except Exception as e:
