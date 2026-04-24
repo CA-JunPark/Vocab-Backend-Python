@@ -27,6 +27,22 @@ gemini_key = os.getenv("GEMINI_API_KEY") or (secretKeys.GEMINI_API_KEY if secret
 ALLOWED_EMAIL = os.getenv("EMAIL") 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
+async def verify_user(auth_header: str):
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing Token")
+    
+    token = auth_header.split(" ")[1]
+    try:
+        # Verify Google ID Token 
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
+        
+        # Verify Email
+        if idinfo['email'] != ALLOWED_EMAIL:
+            raise HTTPException(status_code=403, detail="Access Denied: Wrong Google Account")
+            
+        return idinfo
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Token: {str(e)}")
 
 @app.on_event("startup")
 async def startup():
@@ -44,23 +60,6 @@ def read_root():
 class SyncRequest(BaseModel):
     lastSyncTime: str
     localChanges: List[WordSchema]
-
-async def verify_user(auth_header: str):
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing Token")
-    
-    token = auth_header.split(" ")[1]
-    try:
-        # Verify Google ID Token 
-        idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
-        
-        # Verify Email
-        if idinfo['email'] != ALLOWED_EMAIL:
-            raise HTTPException(status_code=403, detail="Access Denied: Wrong Google Account")
-            
-        return idinfo
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid Token: {str(e)}")
 
 @app.post("/sync")
 async def sync(request: SyncRequest, authorization: str = Header(None)):
