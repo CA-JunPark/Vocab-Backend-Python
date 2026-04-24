@@ -38,6 +38,7 @@ async def shutdown():
 
 @app.get("/")
 def read_root():
+    await verify_user(authorization)
     return {"message": "hello"}
 
 class SyncRequest(BaseModel):
@@ -120,6 +121,7 @@ async def sync(request: SyncRequest, authorization: str = Header(None)):
 
 @app.get("/sync/pullAll")
 async def pull_changes():
+    await verify_user(authorization)
     client = app.state.db_client
     result = await client.execute("SELECT * FROM Word")
     
@@ -161,6 +163,7 @@ systemInstruction = """Provide linguistic details for the given word in JSON for
 # TODO: record the request count and automatically change the model
 @app.get("/gemini")
 async def gemini(word: str):
+    await verify_user(authorization)
     client = genai.Client(api_key=gemini_key)
     try:
         response = client.models.generate_content(
