@@ -68,30 +68,31 @@ async def sync(request: SyncRequest, authorization: str = Header(None)):
     print("localChanges: ", request.localChanges)
     client = app.state.db_client
 
-    statements = [
-        (
-            """
-            INSERT INTO Word (name, meaningKr, example, antonymEn, tags, createdTime, modifiedTime, isDeleted, syncedTime, note)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(name) DO UPDATE SET
-                meaningKr=excluded.meaningKr,
-                example=excluded.example,
-                antonymEn=excluded.antonymEn,
-                tags=excluded.tags,
-                modifiedTime=excluded.modifiedTime,
-                isDeleted=excluded.isDeleted,
-                syncedTime=excluded.modifiedTime,
-                note=excluded.note
-            WHERE excluded.modifiedTime > Word.modifiedTime
-            """,
-            [
-                word.name, word.meaningKr, word.example, word.antonymEn, word.tags, 
-                word.createdTime, word.modifiedTime, int(word.isDeleted), word.modifiedTime, word.note
-            ]
-        )
-        for word in request.localChanges
-    ]
-    await client.batch(statements)
+    if request.localChanges:
+        statements = [
+            (
+                """
+                INSERT INTO Word (name, meaningKr, example, antonymEn, tags, createdTime, modifiedTime, isDeleted, syncedTime, note)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(name) DO UPDATE SET
+                    meaningKr=excluded.meaningKr,
+                    example=excluded.example,
+                    antonymEn=excluded.antonymEn,
+                    tags=excluded.tags,
+                    modifiedTime=excluded.modifiedTime,
+                    isDeleted=excluded.isDeleted,
+                    syncedTime=excluded.modifiedTime,
+                    note=excluded.note
+                WHERE excluded.modifiedTime > Word.modifiedTime
+                """,
+                [
+                    word.name, word.meaningKr, word.example, word.antonymEn, word.tags, 
+                    word.createdTime, word.modifiedTime, int(word.isDeleted), word.modifiedTime, word.note
+                ]
+            )
+            for word in request.localChanges
+        ]
+        await client.batch(statements)
 
     updates = []
     if request.lastSyncTime:
