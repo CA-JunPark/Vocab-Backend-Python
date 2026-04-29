@@ -26,6 +26,7 @@ auth_token = os.getenv("TURSO_TOKEN") or (secretKeys.TURSO_TOKEN if secretKeys e
 gemini_key = os.getenv("GEMINI_API_KEY") or (secretKeys.GEMINI_API_KEY if secretKeys else None)
 ALLOWED_EMAIL = os.getenv("EMAIL") 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+ANDROID_CLIENT_ID = os.getenv("ANDROID_CLIENT_ID")
 
 async def verify_user(auth_header: str):
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -33,10 +34,12 @@ async def verify_user(auth_header: str):
     
     token = auth_header.split(" ")[1]
     try:
-        # Verify Google ID Token 
-        idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
+        idinfo = id_token.verify_oauth2_token(
+            token, 
+            requests.Request(), 
+            audience=[GOOGLE_CLIENT_ID, ANDROID_CLIENT_ID]
+        )
         
-        # Verify Email
         if idinfo['email'] != ALLOWED_EMAIL:
             raise HTTPException(status_code=403, detail="Access Denied: Wrong Google Account")
             
