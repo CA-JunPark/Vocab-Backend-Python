@@ -125,6 +125,15 @@ async def sync(request: SyncRequest, authorization: str = Header(None)):
         "serverTime": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') # for update lastSyncTime in local
     }
 
+@app.delete("/sync/purge")
+async def purge_deleted(authorization: str = Header(None)):
+    await verify_user(authorization)
+    client = app.state.db_client
+    
+    await client.execute("DELETE FROM Word WHERE isDeleted = 1")
+    
+    return {"message": "Purged successfully"}
+
 @app.get("/sync/pullAll")
 async def pull_changes(authorization: str = Header(None)):
     await verify_user(authorization)
