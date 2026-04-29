@@ -37,10 +37,13 @@ async def verify_user(auth_header: str):
         idinfo = id_token.verify_oauth2_token(
             token, 
             requests.Request(), 
-            audience=[GOOGLE_CLIENT_ID, ANDROID_CLIENT_ID]
+            audience=None 
         )
         
-        if idinfo['email'] != ALLOWED_EMAIL:
+        if idinfo.get('aud') not in [GOOGLE_CLIENT_ID, ANDROID_CLIENT_ID]:
+            raise ValueError(f"Wrong recipient. Expected one of our client IDs, got {idinfo.get('aud')}")
+        
+        if idinfo.get('email') != ALLOWED_EMAIL:
             raise HTTPException(status_code=403, detail="Access Denied: Wrong Google Account")
             
         return idinfo
