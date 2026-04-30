@@ -128,6 +128,7 @@ async def sync(request: SyncRequest, authorization: str = Header(None)):
 @app.delete("/sync/purge")
 async def purge_deleted(authorization: str = Header(None)):
     await verify_user(authorization)
+    print("Purging deleted words")
     client = app.state.db_client
     
     await client.execute("DELETE FROM Word WHERE isDeleted = 1")
@@ -179,6 +180,7 @@ systemInstruction = """Provide linguistic details for the given word in JSON for
 @app.get("/gemini")
 async def gemini(word: str, authorization: str = Header(None)):
     await verify_user(authorization)
+    print("Generating vocabulary entry for word: ", word)
     client = genai.Client(api_key=gemini_key)
     try:
         response = client.models.generate_content(
